@@ -1,1 +1,2 @@
-# react
+# React Projects
+This repository is meant to showcare basic react skills through smaller projects. This is my way of learning. Many of these projects are based on tutorial and others are ones that I have come up with myself. Each project will have its own description explaining what the project is and how to run it if necessary. Included in some of the projects description will be a link to where you may view the hosted website on a live site. Thanks for checking it out!
