@@ -2,7 +2,7 @@ import React from "react";
 import { useState } from "react";
 
 export const Gradebox = (props) => {
-  const { addRow, rows, updateRow, calculateGrade } = props;
+  const { addRow, rows, updateRow, calculateGrade, resetData } = props;
   const [grade, setGrade] = useState("");
   return (
     <div className="flex flex-col justify-center items-center p-4">
@@ -21,7 +21,8 @@ export const Gradebox = (props) => {
                 <input
                   className="rounded-md p-2"
                   type="text"
-                  value={row.assignment}
+                  value={row.assignment || ""}
+				  placeholder={index < 1 ? "e.g. Homework 1" : ""}
                   onChange={(e) =>
                     updateRow(index, "assignment", e.target.value)
                   }
@@ -31,7 +32,7 @@ export const Gradebox = (props) => {
                 <input
                   className="rounded-md p-2 w-full"
                   type="number"
-                  value={row.grade}
+                  value={row.grade || ""}
                   onChange={(e) => updateRow(index, "grade", e.target.value)}
                 />
               </td>
@@ -39,7 +40,7 @@ export const Gradebox = (props) => {
                 <input
                   className="rounded-md p-2 w-full"
                   type="number"
-                  value={row.weight}
+                  value={row.weight || ""}
                   onChange={(e) => updateRow(index, "weight", e.target.value)}
                 />
               </td>
@@ -66,6 +67,15 @@ export const Gradebox = (props) => {
           }}
         >
           Calculate
+        </button>
+		<button
+          className="mt-4 p-2 bg-red-500 text-white rounded-md"
+          onClick={() => {
+			setGrade(null)
+			resetData()
+          }}
+        >
+          Reset
         </button>
       </div>
 	  <div className="flex justify-center items-center p-4">

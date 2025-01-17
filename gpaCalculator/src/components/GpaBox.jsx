@@ -1,9 +1,11 @@
 import React from "react";
+import { PriorGpa } from "./PriorGpa";
 import { useState } from "react";
 
 export const GpaBox = (props) => {
-  const { rows, addRow, updateRow, calculateGPA } = props;
+  const { rows, addRow, updateRow, calculateGPA, resetData, prior, setPrior } = props;
   const [gpa, setGpa] = useState("");
+  const [isChecked, setIsChecked] = useState(false);
 
   return (
     <div className="flex flex-col justify-center items-center p-4">
@@ -23,6 +25,7 @@ export const GpaBox = (props) => {
                   className="rounded-md p-2"
                   type="text"
                   value={row.course}
+                  placeholder={index < 1 ? "e.g. Math" : ""}
                   onChange={(e) => updateRow(index, "course", e.target.value)}
                 />
               </td>
@@ -72,24 +75,45 @@ export const GpaBox = (props) => {
           Add Row
         </button>
         <button
-          className="mt-4 p-2 bg-green-500 text-white rounded-md"
+          className="mt-4 p-2 bg-red-500 text-white rounded-md"
+          onClick={() => {
+            setGpa("");
+            resetData();
+          }}
+        >
+          Reset
+        </button>
+      </div>
+      <div className="mt-4 flex flex-col justify-center items-center">
+        <p>
+          <input
+            type="checkbox"
+            checked={isChecked}
+            onChange={() => {
+              setIsChecked(!isChecked);
+            }}
+          />{" "}
+          Add GPA from prior semesters
+        </p>
+        {isChecked && <PriorGpa prior={prior} setPrior={setPrior}/>}
+      </div>
+      <div className="flex flex-col justify-center items-center p-4">
+        <button
+          className="p-2 bg-green-500 text-white rounded-md"
           onClick={() => {
             if (!rows[0].grade || !rows[0].credits) {
               alert("Please fill out the first row");
             }
-            console.log(gpa);
-            setGpa(calculateGPA());
+            setGpa(calculateGPA(isChecked));
           }}
         >
           Calculate
         </button>
-      </div>
-      <div className="flex justify-center items-center p-4">
         <input
           type="text"
           disabled
-          className="border-2 border-gray-500 rounded-md p-2"
-          value={gpa ? gpa.toFixed(2) : ''}
+          className="border-2 border-gray-500 rounded-md p-2 mt-4"
+          value={gpa ? gpa.toFixed(2) : ""}
         />
       </div>
     </div>

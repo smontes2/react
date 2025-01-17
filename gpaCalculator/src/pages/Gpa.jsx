@@ -9,9 +9,11 @@ function Gpa() {
     { course: "", grade: "", credits: "" },
     { course: "", grade: "", credits: "" },
   ]);
+  
+  const [prior, setPrior] = useState({priorGpa: "", priorCredits: ""});
 
   const addRow = () => {
-    const newRow = [...rows, { course: "", grade: null, credits: null }];
+    const newRow = [...rows, { course: "", grade: "", credits: "" }];
     setRow(newRow);
 	handleSaveData(newRow);
   };
@@ -23,9 +25,24 @@ function Gpa() {
 	handleSaveData(newRows);
   };
 
-  const calculateGPA = () => {
+  const resetData = () => {
+	const emptyRows = [
+		{course: "", grade: "", credits: ""},
+		{course: "", grade: "", credits: ""},
+		{course: "", grade: "", credits: ""},
+		{course: "", grade: "", credits: ""},
+	]
+	setRow(emptyRows)
+	handleSaveData(emptyRows)
+  }
+
+  const calculateGPA = (isChecked) => {
 	let totalGradePoints = 0.0;
 	let totalCredits = 0.0;
+	if(prior.priorGpa && prior.priorCredits && isChecked === true) {
+		totalGradePoints = prior.priorCredits * prior.priorGpa;
+		totalCredits = prior.priorCredits;
+	}
 	for(let i = 0; i < rows.length; i ++){
 		if(rows[i].grade == "-"){
 			continue;
@@ -99,7 +116,7 @@ function Gpa() {
 	setRow(db.rows)
   }, [])
 
-  return <GpaBox rows={rows} addRow={addRow} updateRow={updateRow} calculateGPA={calculateGPA}/>;
+  return <GpaBox rows={rows} addRow={addRow} updateRow={updateRow} calculateGPA={calculateGPA} resetData={resetData} prior={prior} setPrior={setPrior}/>;
 }
 
 export default Gpa;
