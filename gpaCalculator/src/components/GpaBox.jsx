@@ -3,7 +3,7 @@ import { PriorGpa } from "./PriorGpa";
 import { useState } from "react";
 
 export const GpaBox = (props) => {
-  const { rows, addRow, updateRow, calculateGPA, resetData, prior, setPrior } = props;
+  const { rows, addRow, updateRow, calculateGPA, resetData, prior, setPrior, updatePrior } = props;
   const [gpa, setGpa] = useState("");
   const [isChecked, setIsChecked] = useState(false);
 
@@ -95,7 +95,7 @@ export const GpaBox = (props) => {
           />{" "}
           Add GPA from prior semesters
         </p>
-        {isChecked && <PriorGpa prior={prior} setPrior={setPrior}/>}
+        {isChecked && <PriorGpa prior={prior} setPrior={setPrior} updatePrior={updatePrior}/>}
       </div>
       <div className="flex flex-col justify-center items-center p-4">
         <button
