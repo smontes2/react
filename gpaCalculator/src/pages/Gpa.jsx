@@ -10,28 +10,54 @@ function Gpa() {
     { course: "", grade: "", credits: "" },
   ]);
 
+  const [calculations, setCalculations] = useState([]);
+
   const [prior, setPrior] = useState({ priorGpa: "", priorCredits: "" });
 
   const addRow = () => {
     const newRow = [...rows, { course: "", grade: "", credits: "" }];
     setRow(newRow);
-    handleSaveData(newRow, prior);
+    handleSaveData(newRow, prior, calculations);
   };
 
   const updateRow = (index, field, value) => {
     const newRows = [...rows];
     newRows[index][field] = value;
     setRow(newRows);
-    handleSaveData(newRows, prior);
+    handleSaveData(newRows, prior, calculations);
   };
 
-  //   Doing nothing right now
   const updatePrior = (priorGpaInput, priorCreditsInput) => {
-    const newPrior = {priorGpa: priorGpaInput, priorCredits: priorCreditsInput};
+    const newPrior = {
+      priorGpa: priorGpaInput,
+      priorCredits: priorCreditsInput,
+    };
     setPrior(newPrior);
-	handleSaveData(rows, newPrior)
+    handleSaveData(rows, newPrior, calculations);
   };
 
+  const addCalculation = (d, gpa, r, p) => {
+	const newCalculation = [{ date: d, calculation: gpa, currentRows: r, currentPriors: p}, ...(calculations || [])];
+	setCalculations(newCalculation);
+	handleSaveData(rows, prior, newCalculation);
+  };
+
+  const deleteCalculatedGrade = (index) => {
+	const updateCalculationTable = calculations.filter((_, i) => i !== index);
+	setCalculations(updateCalculationTable);
+	handleSaveData(rows, prior, updateCalculationTable);
+  };
+
+  const restoreCalculations = (index, calculations) => {
+	const selectedCalculation = calculations[index];
+	if (selectedCalculation) {
+		setRow(selectedCalculation.currentRows);
+		setPrior(selectedCalculation.currentPriors);
+		handleSaveData(selectedCalculation.currentRows, selectedCalculation.currentPriors, calculations);
+	}
+  }
+
+  // Create reset function for priorCalculations
   const resetData = () => {
     const emptyRows = [
       { course: "", grade: "", credits: "" },
@@ -39,10 +65,10 @@ function Gpa() {
       { course: "", grade: "", credits: "" },
       { course: "", grade: "", credits: "" },
     ];
-	const emptyPrior = { priorGpa: "", priorCredits: "" };
+    const emptyPrior = { priorGpa: "", priorCredits: "" };
     setRow(emptyRows);
-	setPrior(emptyPrior);
-    handleSaveData(emptyRows, emptyPrior);
+    setPrior(emptyPrior);
+    handleSaveData(emptyRows, emptyPrior, calculations);
   };
 
   const calculateGPA = (isChecked) => {
@@ -99,10 +125,10 @@ function Gpa() {
     return totalGradePoints / totalCredits;
   };
 
-  const handleSaveData = (currentRows, currentPrior) => {
+  const handleSaveData = (currentRows, currentPrior, currentCalculations) => {
     localStorage.setItem(
       "gpaCalculator",
-      JSON.stringify({ rows: currentRows, prior: currentPrior })
+      JSON.stringify({ rows: currentRows, prior: currentPrior, calculations: currentCalculations })
     );
   };
 
@@ -113,20 +139,30 @@ function Gpa() {
     let db = [];
     db = JSON.parse(localStorage.getItem("gpaCalculator"));
     setRow(db.rows);
-	setPrior(db.prior);
+    setPrior(db.prior);
+	setCalculations(db.calculations);
   }, []);
 
   return (
-    <GpaBox
-      rows={rows}
-      addRow={addRow}
-      updateRow={updateRow}
-      calculateGPA={calculateGPA}
-      resetData={resetData}
-      prior={prior}
-      setPrior={setPrior}
-      updatePrior={updatePrior}
-    />
+    <div className="flex justify-center">
+      <div>
+        <GpaBox
+          rows={rows}
+          addRow={addRow}
+          updateRow={updateRow}
+          calculateGPA={calculateGPA}
+          resetData={resetData}
+          prior={prior}
+          setPrior={setPrior}
+          updatePrior={updatePrior}
+		  calculations={calculations}
+		  setCalculations={setCalculations}
+		  addCalculation={addCalculation}
+		  deleteCalculatedGrade={deleteCalculatedGrade}
+		  restoreCalculations={restoreCalculations}
+        />
+      </div>
+    </div>
   );
 }
 

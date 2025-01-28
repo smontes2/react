@@ -16,6 +16,7 @@ function App() {
           <Route path='/' element={<Home />} />
           <Route path='/gpa' element={<Gpa />} />
           <Route path='/grade' element={<Grade />} />
+          {/* Add classes page */}
         </Routes>
       </Router>
     </>
