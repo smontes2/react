@@ -1,26 +1,63 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { Navbar } from './components/Navbar';
-import Gpa from './pages/gpa';
-import Grade from './pages/Grade';
-import Home from './pages/Home';
-import './App.css'
+import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import PrivateRoute from "./routes/PrivateRoute";
+import Login from "./components/Login";
+import { Navbar } from "./components/Navbar";
+import Gpa from "./routes/Gpa";
+import Grade from "./routes/Grade";
+import Home from "./pages/Home";
+import Classes from "./routes/Classes";
+import Feedback from "./pages/Feedback";
+import NotFound from "./pages/NotFound";
+import "./App.css";
+import { ClassProvider } from "./context/ClassesContext";
+import SignUp from "./components/SignUp";
+import PublicRoute from "./routes/PublicRoute";
 
 function App() {
-
   return (
-    <>
-      <Router>
-        <Navbar />
-        <Routes>
-          <Route path='/' element={<Home />} />
-          <Route path='/gpa' element={<Gpa />} />
-          <Route path='/grade' element={<Grade />} />
-          {/* Add classes page */}
-        </Routes>
-      </Router>
-    </>
+    <div className="min-h-screen bg-slate-50">
+      <AuthProvider>
+        <ClassProvider>
+          <Router>
+            <Navbar />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/gpa" element={<Gpa />} />
+              <Route path="/grade" element={<Grade />} />
+              <Route
+                path="/classes"
+                element={
+                  <PrivateRoute>
+                    <Classes />
+                  </PrivateRoute>
+                }
+              />
+              <Route path="/feedback" element={<Feedback />} />
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/signup"
+                element={
+                  <PublicRoute>
+                    <SignUp />
+                  </PublicRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Router>
+        </ClassProvider>
+      </AuthProvider>
+    </div>
   );
 }
 
-export default App
+export default App;
