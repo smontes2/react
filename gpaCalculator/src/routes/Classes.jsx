@@ -1,107 +1,114 @@
+import { useState } from "react";
 import { useClasses } from "../context/ClassesContext";
 import { useNavigate, Link } from "react-router-dom";
-
-const getGradeColor = (letter) => {
-  if (!letter) return "bg-slate-100 text-slate-500";
-  if (letter.startsWith("A")) return "bg-emerald-100 text-emerald-700";
-  if (letter.startsWith("B")) return "bg-indigo-100 text-indigo-700";
-  if (letter.startsWith("C")) return "bg-amber-100 text-amber-700";
-  return "bg-red-100 text-red-600";
-};
+import { PageHeading, Icon, Loading, ErrorMessage } from "../components/ui/Ui";
 
 function Classes() {
   const { classes, removeClass, loading } = useClasses();
   const navigate = useNavigate();
-
+  const [error, setError] = useState("");
+  const [removing, setRemoving] = useState(null);
   const handleRedirect = () => {
-    const withLetterGrades = classes.map((c) => ({ ...c, grade: c.letterGrade }));
+    const withLetterGrades = classes.map((c) => ({
+      ...c,
+      grade: c.letterGrade,
+    }));
     navigate("/gpa", { state: { classes: withLetterGrades } });
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
+  const handleRemove = async (index) => {
+    setError("");
+    setRemoving(index);
+    try {
+      await removeClass(index);
+    } catch {
+      setError("Could not remove this class. Please try again.");
+    } finally {
+      setRemoving(null);
+    }
+  };
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Your Classes</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {classes.length > 0
-                ? `${classes.length} saved class${classes.length !== 1 ? "es" : ""}`
-                : "No saved classes yet"}
+    <div className="page-shell">
+      <PageHeading
+        title="Your work, all together."
+        description="Saved course grades, ready when you need them."
+        eyebrow="YOUR CLASSES"
+      />
+      {loading ? (
+        <Loading />
+      ) : (
+        <>
+          <div className="classes-toolbar">
+            <p>
+              {classes.length} saved class{classes.length !== 1 ? "es" : ""}
             </p>
-          </div>
-          {classes.length > 0 && (
-            <button
-              onClick={handleRedirect}
-              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm text-sm"
-            >
-              <i className="fa-solid fa-chart-line text-xs"></i>
-              Calculate GPA
-            </button>
-          )}
-        </div>
-
-        {classes.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 border-dashed p-16 text-center">
-            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <i className="fa-solid fa-book-open text-slate-400 text-xl"></i>
+            <div>
+              <Link className="button button-secondary" to="/grade">
+                <Icon name="plus" />
+                Add a class
+              </Link>
+              {classes.length > 0 && (
+                <button
+                  className="button button-primary"
+                  onClick={handleRedirect}
+                >
+                  Calculate GPA
+                  <Icon name="arrow" />
+                </button>
+              )}
             </div>
-            <h3 className="text-base font-semibold text-slate-700 mb-1">No classes saved</h3>
-            <p className="text-sm text-slate-400 mb-5">Use the Grade Calculator to calculate and save your class grades.</p>
-            <Link
-              to="/grade"
-              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors text-sm"
-            >
-              <i className="fa-solid fa-calculator text-xs"></i>
-              Go to Grade Calculator
-            </Link>
           </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {classes.map((row, index) => (
-              <div
-                key={row.id || index}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-slate-900 text-sm leading-snug flex-1 min-w-0 truncate">
-                    {row.courseName || "Untitled Class"}
-                  </h3>
-                  <button
-                    onClick={() => removeClass(index)}
-                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
-                    title="Remove class"
+          <ErrorMessage>{error}</ErrorMessage>
+          {classes.length === 0 ? (
+            <div className="empty-state">
+              <Icon name="book" />
+              <h2>A place for your classes.</h2>
+              <p>
+                Calculate a course grade, then save it here to use it again.
+              </p>
+              <Link to="/grade" className="button button-primary">
+                Open grade calculator
+                <Icon name="arrow" />
+              </Link>
+            </div>
+          ) : (
+            <section className="classes-list" aria-label="Saved classes">
+              <div className="class-list-heading" aria-hidden="true">
+                <span>Course</span>
+                <span>Grade</span>
+                <span>Letter</span>
+                <span />
+              </div>
+              {classes.map((row, index) => (
+                <div className="class-list-row" key={row.id || index}>
+                  <h2>{row.courseName || "Untitled Class"}</h2>
+                  <span className="class-grade">
+                    <span className="mobile-field-label">Grade</span>
+                    {typeof row.grade === "number"
+                      ? row.grade.toFixed(1)
+                      : row.grade}
+                    %
+                  </span>
+                  <span
+                    className={`class-letter ${row.letterGrade?.startsWith("A") || row.letterGrade?.startsWith("B") ? "grade-positive" : "grade-neutral"}`}
                   >
-                    <i className="fa-solid fa-trash text-xs"></i>
+                    <span className="sr-only">Letter grade </span>
+                    {row.letterGrade || "—"}
+                  </span>
+                  <button
+                    className="icon-button danger-action"
+                    disabled={removing !== null}
+                    onClick={() => handleRemove(index)}
+                    aria-label={`Remove ${row.courseName || "untitled class"}`}
+                  >
+                    <Icon name="trash" />
                   </button>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-center">
-                    <p className="text-xs text-slate-400 mb-0.5">Grade</p>
-                    <p className="text-lg font-bold text-slate-800">
-                      {typeof row.grade === "number" ? row.grade.toFixed(1) : row.grade}%
-                    </p>
-                  </div>
-                  <div className={`shrink-0 w-14 h-14 rounded-xl flex items-center justify-center font-bold text-xl ${getGradeColor(row.letterGrade)}`}>
-                    {row.letterGrade || "?"}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </section>
+          )}
+        </>
+      )}
     </div>
   );
 }
-
 export default Classes;

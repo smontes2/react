@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Icon, ErrorMessage } from "./ui/Ui";
 import { signUp } from "../services/authServices";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -41,83 +42,75 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-6">
-          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <i className="fa-solid fa-calculator text-white text-xl"></i>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-          <h2 className="text-xl font-bold text-slate-900 text-center mb-1">Create an account</h2>
-          <p className="text-sm text-slate-500 text-center mb-6">Save your classes and track your GPA over time</p>
-
-          {error && (
-            <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 mb-4">
-              <i className="fa-solid fa-circle-exclamation mt-0.5 shrink-0"></i>
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSignUp} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-              <input
-                type="password"
-                placeholder="Min. 6 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Confirm Password</label>
-              <input
-                type="password"
-                placeholder="Re-enter your password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-xl transition-colors text-sm"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Creating account...
-                </span>
-              ) : "Create Account"}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-slate-500 mt-5">
-            Already have an account?{" "}
-            <Link to="/login" className="text-indigo-600 font-medium hover:text-indigo-700">
-              Sign in
-            </Link>
-          </p>
-        </div>
+    <div className="auth-page">
+      <div className="auth-intro">
+        <span className="auth-mark">
+          <Icon name="book" />
+        </span>
+        <p className="eyebrow">YOUR WORK, READY WHEN YOU ARE</p>
+        <h1>Create an account</h1>
+        <p>Save your classes and pick up where you left off.</p>
       </div>
+      <div className="auth-panel">
+        <ErrorMessage>{error}</ErrorMessage>
+        <form onSubmit={handleSignUp} className="auth-form">
+          <label htmlFor="auth-email">
+            Email
+            <input
+              id="auth-email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+          <label htmlFor="auth-password">
+            Password
+            <input
+              id="auth-password"
+              type="password"
+              autoComplete="new-password"
+              placeholder="At least 6 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+          <label htmlFor="auth-confirm">
+            Confirm password
+            <input
+              id="auth-confirm"
+              type="password"
+              autoComplete="new-password"
+              placeholder="Enter your password again"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+            />
+          </label>
+          <button
+            className="button button-primary"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Creating account…" : "Create account"}
+            <Icon name="arrow" />
+          </button>
+          <span className="sr-only" role="status">
+            {loading ? "Please wait…" : ""}
+          </span>
+        </form>
+        <p className="auth-alternate">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </p>
+      </div>
+      <Link to="/grade" className="auth-guest">
+        Just calculating? Continue without an account
+        <Icon name="arrow" />
+      </Link>
     </div>
   );
 };
-
 export default SignUp;

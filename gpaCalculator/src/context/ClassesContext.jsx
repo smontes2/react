@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { db, auth } from "../config/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { COLLECTIONS } from "../../../src/constants/collections";
+import { COLLECTIONS } from "../constants/collections";
 
 const ClassContext = createContext();
 
@@ -36,14 +36,19 @@ export function ClassProvider({ children }) {
     return () => unsubscribe();
   }, []); // Empty dependency array since we're using onAuthStateChanged
 
-  const addClass = async (courseName, calculatedGrade, letterGrade, currentRows) => {
+  const addClass = async (
+    courseName,
+    calculatedGrade,
+    letterGrade,
+    currentRows,
+  ) => {
     const user = auth.currentUser;
     if (!user) return;
 
     try {
       const rowsCopy = JSON.parse(JSON.stringify(currentRows));
       const existingClassIndex = classes.findIndex(
-        (c) => c.courseName === courseName
+        (c) => c.courseName === courseName,
       );
 
       let updatedClasses;
@@ -56,7 +61,7 @@ export function ClassProvider({ children }) {
                 grade: calculatedGrade,
                 letterGrade: letterGrade,
               }
-            : c
+            : c,
         );
       } else {
         updatedClasses = [
@@ -75,6 +80,7 @@ export function ClassProvider({ children }) {
       setClasses(updatedClasses);
     } catch (error) {
       console.error("Error saving class:", error);
+      throw error;
     }
   };
 
@@ -89,6 +95,7 @@ export function ClassProvider({ children }) {
       setClasses(updatedClasses);
     } catch (error) {
       console.error("Error removing class:", error);
+      throw error;
     }
   };
 

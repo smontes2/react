@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageHeading, RelatedTool } from "../components/ui/Ui";
 import { db } from "../config/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { Gradebox } from "../components/Gradebox";
@@ -24,7 +25,12 @@ const getLetterGrade = (grade) => {
 };
 
 function Grade() {
-  const [rows, setRows] = useState([emptyRow(), emptyRow(), emptyRow(), emptyRow()]);
+  const [rows, setRows] = useState([
+    emptyRow(),
+    emptyRow(),
+    emptyRow(),
+    emptyRow(),
+  ]);
   const [className, setClassName] = useState("");
   const { user, loading } = useAuth();
   const { addClass: addClassToContext } = useClasses();
@@ -55,7 +61,9 @@ function Grade() {
   };
 
   const updateRow = (index, field, value) => {
-    const updated = rows.map((r, i) => i === index ? { ...r, [field]: value } : r);
+    const updated = rows.map((r, i) =>
+      i === index ? { ...r, [field]: value } : r,
+    );
     setRows(updated);
     saveData(updated, className);
   };
@@ -90,7 +98,7 @@ function Grade() {
   const addClass = (courseName, currentRows) => {
     const calculatedGrade = calculateGrade();
     const letter = getLetterGrade(calculatedGrade);
-    addClassToContext(courseName, calculatedGrade, letter, currentRows);
+    return addClassToContext(courseName, calculatedGrade, letter, currentRows);
   };
 
   const resetData = () => {
@@ -117,25 +125,35 @@ function Grade() {
   }, [user, loading]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Grade Calculator</h1>
-          <p className="text-sm text-slate-500 mt-1">Enter your assignments with grades and weights to calculate your final course grade.</p>
-        </div>
-        <Gradebox
-          addRow={addRow}
-          removeRow={removeRow}
-          rows={rows}
-          updateRow={updateRow}
-          calculateGrade={calculateGrade}
-          resetData={resetData}
-          updateClassName={updateClassName}
-          className={className}
-          addClass={addClass}
-          restoreClasses={restoreClasses}
-        />
-      </div>
+    <div className="page-shell">
+      <PageHeading
+        title="Every assignment counts."
+        description="Add your grades and weights. See where you stand."
+        note={
+          <>
+            <strong>Grade calculator</strong>
+            <span>No account needed to calculate.</span>
+          </>
+        }
+      />
+      <Gradebox
+        addRow={addRow}
+        removeRow={removeRow}
+        rows={rows}
+        updateRow={updateRow}
+        calculateGrade={calculateGrade}
+        resetData={resetData}
+        updateClassName={updateClassName}
+        className={className}
+        addClass={addClass}
+        restoreClasses={restoreClasses}
+      />
+      <RelatedTool
+        to="/gpa"
+        title="From a class grade to the bigger picture."
+        description="Combine your courses and credit hours to calculate your GPA."
+        label="Open GPA calculator"
+      />
     </div>
   );
 }

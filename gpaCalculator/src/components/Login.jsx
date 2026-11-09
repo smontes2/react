@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Icon, ErrorMessage } from "./ui/Ui";
 import { login } from "../services/authServices";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -39,73 +40,63 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        {/* Logo mark */}
-        <div className="flex justify-center mb-6">
-          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <i className="fa-solid fa-calculator text-white text-xl"></i>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-          <h2 className="text-xl font-bold text-slate-900 text-center mb-1">Welcome back</h2>
-          <p className="text-sm text-slate-500 text-center mb-6">Sign in to your GradeVault account</p>
-
-          {error && (
-            <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 mb-4">
-              <i className="fa-solid fa-circle-exclamation mt-0.5 shrink-0"></i>
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold rounded-xl transition-colors text-sm"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Signing in...
-                </span>
-              ) : "Sign In"}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-slate-500 mt-5">
-            Don't have an account?{" "}
-            <Link to="/signup" className="text-indigo-600 font-medium hover:text-indigo-700">
-              Sign up free
-            </Link>
-          </p>
-        </div>
+    <div className="auth-page">
+      <div className="auth-intro">
+        <span className="auth-mark">
+          <Icon name="lock" />
+        </span>
+        <p className="eyebrow">YOUR WORK, READY WHEN YOU ARE</p>
+        <h1>Welcome back.</h1>
+        <p>Sign in to your GradeVault account.</p>
       </div>
+      <div className="auth-panel">
+        <ErrorMessage>{error}</ErrorMessage>
+        <form onSubmit={handleLogin} className="auth-form">
+          <label htmlFor="auth-email">
+            Email
+            <input
+              id="auth-email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+          <label htmlFor="auth-password">
+            Password
+            <input
+              id="auth-password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+          <button
+            className="button button-primary"
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Signing in…" : "Sign in"}
+            <Icon name="arrow" />
+          </button>
+          <span className="sr-only" role="status">
+            {loading ? "Please wait…" : ""}
+          </span>
+        </form>
+        <p className="auth-alternate">
+          New to GradeVault? <Link to="/signup">Create an account</Link>
+        </p>
+      </div>
+      <Link to="/grade" className="auth-guest">
+        Just calculating? Continue without an account
+        <Icon name="arrow" />
+      </Link>
     </div>
   );
 };
-
 export default Login;

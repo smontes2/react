@@ -1,183 +1,193 @@
-import React, { useState } from "react";
+/* eslint-disable react/prop-types -- Props retain the existing GPA calculator contract. */
+import { useState } from "react";
 import { PriorGpa } from "./PriorGpa";
 import { PriorCalculations } from "./PriorCalculations";
+import { CalculatorRows, ErrorMessage, Icon, Notice } from "./ui/Ui";
 
 const GRADE_POINTS = {
-  "A+": 4.33, A: 4.0, "A-": 3.67,
-  "B+": 3.33, B: 3.0, "B-": 2.67,
-  "C+": 2.33, C: 2.0, "C-": 1.67,
-  "D+": 1.33, D: 1.0, "D-": 0.67,
+  "A+": 4.33,
+  A: 4.0,
+  "A-": 3.67,
+  "B+": 3.33,
+  B: 3.0,
+  "B-": 2.67,
+  "C+": 2.33,
+  C: 2.0,
+  "C-": 1.67,
+  "D+": 1.33,
+  D: 1.0,
+  "D-": 0.67,
   F: 0.0,
 };
-
-const getGpaLabel = (gpa) => {
-  if (isNaN(gpa)) return null;
-  if (gpa >= 3.7) return { label: "A / Excellent", color: "text-emerald-600 bg-emerald-50 border-emerald-200" };
-  if (gpa >= 3.3) return { label: "A- / Great", color: "text-emerald-600 bg-emerald-50 border-emerald-200" };
-  if (gpa >= 3.0) return { label: "B / Good Standing", color: "text-indigo-600 bg-indigo-50 border-indigo-200" };
-  if (gpa >= 2.7) return { label: "B- / Above Average", color: "text-indigo-600 bg-indigo-50 border-indigo-200" };
-  if (gpa >= 2.0) return { label: "C / Average", color: "text-amber-600 bg-amber-50 border-amber-200" };
-  return { label: "Below Average", color: "text-red-600 bg-red-50 border-red-200" };
+// Preserve the existing GPA standing labels and thresholds.
+const getGpaStanding = (gpa) => {
+  if (gpa >= 3.7) return { label: "A / Excellent", tone: "grade-positive" };
+  if (gpa >= 3.3) return { label: "A- / Great", tone: "grade-positive" };
+  if (gpa >= 3.0) return { label: "B / Good Standing", tone: "grade-positive" };
+  if (gpa >= 2.7) return { label: "B- / Above Average", tone: "grade-neutral" };
+  if (gpa >= 2.0) return { label: "C / Average", tone: "grade-neutral" };
+  return { label: "Below Average", tone: "grade-low" };
 };
-
-export const GpaBox = (props) => {
-  const {
-    rows, addRow, updateRow, removeRow,
-    calculateGPA, resetData,
-    prior, updatePrior,
-    calculations, addCalculation, deleteCalculatedGrade, restoreCalculations,
-  } = props;
-
+const columns = [
+  { key: "course", label: "Course", placeholder: "Course name" },
+  { key: "grade", label: "Grade", options: Object.keys(GRADE_POINTS) },
+  { key: "credits", label: "Credits", type: "number", min: 0, max: 6 },
+];
+export const GpaBox = ({
+  rows,
+  addRow,
+  updateRow,
+  removeRow,
+  calculateGPA,
+  resetData,
+  prior,
+  updatePrior,
+  calculations,
+  addCalculation,
+  deleteCalculatedGrade,
+  restoreCalculations,
+}) => {
   const [gpa, setGpa] = useState(null);
   const [showPrior, setShowPrior] = useState(false);
   const [error, setError] = useState("");
-
+  const changed = () => {
+    setGpa(null);
+    setError("");
+  };
+  const credits = rows.reduce(
+    (sum, row) =>
+      sum +
+      (GRADE_POINTS[row.grade] !== undefined && parseFloat(row.credits) > 0
+        ? parseFloat(row.credits)
+        : 0),
+    0,
+  );
   const handleCalculate = () => {
-    const hasValidRow = rows.some((r) => r.grade && r.grade !== "-" && r.credits);
-    if (!hasValidRow) {
+    if (!rows.some((r) => r.grade && r.grade !== "-" && r.credits)) {
       setError("Fill in at least one course with a grade and credits.");
       return;
     }
-    setError("");
     const result = calculateGPA(showPrior);
-    if (isNaN(result)) {
-      setError("Could not calculate — check that credits are numbers.");
+    if (!Number.isFinite(result)) {
+      setError(
+        "Could not calculate — check that credits are positive numbers.",
+      );
       return;
     }
+    setError("");
     setGpa(result);
-    addCalculation(new Date().toLocaleDateString(), result.toFixed(2), rows, prior);
+    addCalculation(
+      new Date().toLocaleDateString(),
+      result.toFixed(2),
+      rows,
+      prior,
+    );
   };
-
-  const gpaInfo = gpa !== null ? getGpaLabel(gpa) : null;
-
   return (
-    <div className="flex flex-col xl:flex-row gap-6 w-full">
-      {/* Left: calculator */}
-      <div className="flex-1 min-w-0">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          {/* Table header */}
-          <div className="grid grid-cols-12 bg-slate-900 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-300">
-            <div className="col-span-5">Course</div>
-            <div className="col-span-3 text-center">Grade</div>
-            <div className="col-span-3 text-center">Credits</div>
-            <div className="col-span-1"></div>
-          </div>
-
-          <div className="divide-y divide-slate-100">
-            {rows.map((row, index) => (
-              <div key={row.id || index} className="grid grid-cols-12 items-center px-4 py-2.5 hover:bg-slate-50 transition-colors">
-                <div className="col-span-5 pr-2">
-                  <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-300"
-                    type="text"
-                    value={row.course}
-                    placeholder={index === 0 ? "e.g. Math 101" : "Course name"}
-                    onChange={(e) => updateRow(index, "course", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-3 px-1">
-                  <select
-                    className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
-                    value={row.grade || "-"}
-                    onChange={(e) => updateRow(index, "grade", e.target.value)}
-                  >
-                    <option value="-">—</option>
-                    {Object.keys(GRADE_POINTS).map((g) => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-3 px-1">
-                  <input
-                    className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    type="number"
-                    min="0"
-                    max="6"
-                    value={row.credits}
-                    placeholder="3"
-                    onChange={(e) => updateRow(index, "credits", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-1 flex justify-center">
-                  {rows.length > 1 && (
-                    <button
-                      onClick={() => removeRow(index)}
-                      className="p-1 text-slate-300 hover:text-red-400 transition-colors rounded"
-                      title="Remove row"
-                    >
-                      <i className="fa-solid fa-xmark text-sm"></i>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Footer controls */}
-          <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
-            <button
-              onClick={addRow}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-            >
-              <i className="fa-solid fa-plus text-xs"></i> Add Course
-            </button>
-            <button
-              onClick={() => { setGpa(null); setError(""); resetData(); }}
-              className="text-sm text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              Reset all
-            </button>
-          </div>
-        </div>
-
-        {/* Prior semester toggle */}
-        <div className="mt-3">
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
-            <div
-              onClick={() => setShowPrior(!showPrior)}
-              className={`w-9 h-5 rounded-full transition-colors flex items-center px-0.5 ${showPrior ? "bg-indigo-600" : "bg-slate-300"}`}
-            >
-              <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${showPrior ? "translate-x-4" : "translate-x-0"}`}></div>
+    <>
+      <div className="calculator-workspace">
+        <section
+          className="calculator-editor gpa-editor"
+          aria-label="Course editor"
+        >
+          <CalculatorRows
+            rows={rows}
+            columns={columns}
+            noun="course"
+            updateRow={(...args) => {
+              changed();
+              updateRow(...args);
+            }}
+            removeRow={(i) => {
+              changed();
+              removeRow(i);
+            }}
+            addRow={() => {
+              changed();
+              addRow();
+            }}
+            reset={() => {
+              changed();
+              resetData();
+            }}
+            total={
+              <>
+                Course credits <strong>{Number(credits.toFixed(2))}</strong>
+              </>
+            }
+          />
+          <div className="prior-section">
+            <label className="prior-toggle">
+              <input
+                type="checkbox"
+                checked={showPrior}
+                onChange={(e) => {
+                  changed();
+                  setShowPrior(e.target.checked);
+                }}
+                aria-controls="prior-semester-fields"
+              />
+              <span>Include prior semester GPA</span>
+            </label>
+            <div id="prior-semester-fields" hidden={!showPrior}>
+              <PriorGpa
+                prior={prior}
+                updatePrior={(...args) => {
+                  changed();
+                  updatePrior(...args);
+                }}
+              />
             </div>
-            <span className="text-sm text-slate-600">Include prior semester GPA</span>
-          </label>
-          {showPrior && (
-            <PriorGpa prior={prior} updatePrior={updatePrior} />
-          )}
-        </div>
-
-        {/* Error */}
-        {error && (
-          <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            <i className="fa-solid fa-circle-exclamation mr-1.5"></i>{error}
+          </div>
+          <Notice>
+            Grades are weighted by credit hours. The existing scale includes A+
+            at 4.33 and A at 4.00.
+          </Notice>
+        </section>
+        <aside className="calculator-summary" aria-label="GPA result">
+          <p className="summary-label">
+            {showPrior ? "Your cumulative GPA" : "Your semester GPA"}
           </p>
-        )}
-
-        {/* Calculate button + result */}
-        <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <button
-            onClick={handleCalculate}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors shadow-sm"
-          >
+          <div role="status" aria-live="polite" aria-atomic="true">
+            <p className="result-number">
+              {gpa !== null ? gpa.toFixed(2) : "—"}
+            </p>
+            {gpa !== null && (
+              <p className={`gpa-standing ${getGpaStanding(gpa).tone}`}>
+                {getGpaStanding(gpa).label}
+              </p>
+            )}
+            <p className="summary-copy">
+              {gpa !== null
+                ? `Calculated from ${Number(credits.toFixed(2))} course credits${showPrior ? " and your prior semester data" : ""}.`
+                : "Enter your course grades and credits to see your GPA."}
+            </p>
+          </div>
+          <ErrorMessage>{error}</ErrorMessage>
+          <button className="button button-primary" onClick={handleCalculate}>
             Calculate GPA
+            <Icon name="arrow" />
           </button>
-          {gpa !== null && (
-            <div className={`flex-1 flex items-center justify-center gap-3 rounded-xl border px-5 py-3 ${gpaInfo?.color}`}>
-              <span className="text-2xl font-bold">{gpa.toFixed(2)}</span>
-              <span className="text-sm font-medium opacity-80">{gpaInfo?.label}</span>
-            </div>
-          )}
-        </div>
+          <p className="result-help">
+            Each calculation is added to your history.
+          </p>
+          <div className="save-area">
+            <h2>The whole picture.</h2>
+            <p>
+              Include your prior GPA and completed credits to calculate a
+              cumulative result.
+            </p>
+          </div>
+        </aside>
       </div>
-
-      {/* Right: history */}
-      <div className="xl:w-72 shrink-0">
-        <PriorCalculations
-          calculations={calculations}
-          deleteCalculatedGrade={deleteCalculatedGrade}
-          restoreCalculations={restoreCalculations}
-        />
-      </div>
-    </div>
+      <PriorCalculations
+        calculations={calculations}
+        deleteCalculatedGrade={deleteCalculatedGrade}
+        restoreCalculations={(...args) => {
+          changed();
+          restoreCalculations(...args);
+        }}
+      />
+    </>
   );
 };

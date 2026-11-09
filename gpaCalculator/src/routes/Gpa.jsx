@@ -1,16 +1,25 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { GpaBox } from "../components/GpaBox";
 import { useLocation } from "react-router-dom";
 import { db } from "../config/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { COLLECTIONS } from "../constants/collections";
+import { PageHeading } from "../components/ui/Ui";
 
 const GRADE_POINTS = {
-  "A+": 4.33, A: 4.0, "A-": 3.67,
-  "B+": 3.33, B: 3.0, "B-": 2.67,
-  "C+": 2.33, C: 2.0, "C-": 1.67,
-  "D+": 1.33, D: 1.0, "D-": 0.67,
+  "A+": 4.33,
+  A: 4.0,
+  "A-": 3.67,
+  "B+": 3.33,
+  B: 3.0,
+  "B-": 2.67,
+  "C+": 2.33,
+  C: 2.0,
+  "C-": 1.67,
+  "D+": 1.33,
+  D: 1.0,
+  "D-": 0.67,
   F: 0.0,
 };
 
@@ -20,7 +29,12 @@ function Gpa() {
   const location = useLocation();
   const { user, loading } = useAuth();
 
-  const [rows, setRows] = useState([emptyRow(), emptyRow(), emptyRow(), emptyRow()]);
+  const [rows, setRows] = useState([
+    emptyRow(),
+    emptyRow(),
+    emptyRow(),
+    emptyRow(),
+  ]);
   const [calculations, setCalculations] = useState([]);
   const [prior, setPrior] = useState({ priorGpa: "", priorCredits: "" });
 
@@ -51,7 +65,9 @@ function Gpa() {
   };
 
   const updateRow = (index, field, value) => {
-    const updated = rows.map((r, i) => i === index ? { ...r, [field]: value } : r);
+    const updated = rows.map((r, i) =>
+      i === index ? { ...r, [field]: value } : r,
+    );
     setRows(updated);
     saveData(updated, prior, calculations);
   };
@@ -149,27 +165,31 @@ function Gpa() {
   }, [location.state]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">GPA Calculator</h1>
-          <p className="text-sm text-slate-500 mt-1">Enter your courses, grades, and credit hours to calculate your GPA.</p>
-        </div>
-        <GpaBox
-          rows={rows}
-          addRow={addRow}
-          removeRow={removeRow}
-          updateRow={updateRow}
-          calculateGPA={calculateGPA}
-          resetData={resetData}
-          prior={prior}
-          updatePrior={updatePrior}
-          calculations={calculations}
-          addCalculation={addCalculation}
-          deleteCalculatedGrade={deleteCalculatedGrade}
-          restoreCalculations={restoreCalculations}
-        />
-      </div>
+    <div className="page-shell">
+      <PageHeading
+        title="Your semester, in perspective."
+        description="Bring your courses, grades, and credits together."
+        note={
+          <>
+            <strong>GPA calculator</strong>
+            <span>Semester or cumulative. Your choice.</span>
+          </>
+        }
+      />
+      <GpaBox
+        rows={rows}
+        addRow={addRow}
+        removeRow={removeRow}
+        updateRow={updateRow}
+        calculateGPA={calculateGPA}
+        resetData={resetData}
+        prior={prior}
+        updatePrior={updatePrior}
+        calculations={calculations}
+        addCalculation={addCalculation}
+        deleteCalculatedGrade={deleteCalculatedGrade}
+        restoreCalculations={restoreCalculations}
+      />
     </div>
   );
 }
