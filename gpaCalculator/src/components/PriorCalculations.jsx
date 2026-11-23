@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types -- Props retain the existing history contract. */
-import { Icon, Loading } from "./ui/Ui";
+import { ConfirmAction, Icon, Loading } from "./ui/Ui";
 export const PriorCalculations = ({
   calculations,
   deleteCalculatedGrade,
@@ -29,7 +29,7 @@ export const PriorCalculations = ({
               <span className="history-detail">
                 {calc.currentRows?.filter((r) => r.grade && r.grade !== "-")
                   .length || 0}{" "}
-                courses
+                {calc.currentRows?.filter((r) => r.grade && r.grade !== "-").length === 1 ? "course" : "courses"}
               </span>
             </div>
             <div className="history-actions">
@@ -41,13 +41,12 @@ export const PriorCalculations = ({
                 <Icon name="restore" />
                 Restore
               </button>
-              <button
-                className="icon-button danger-action"
-                onClick={() => deleteCalculatedGrade(index)}
-                aria-label={`Delete calculation ${index + 1} from ${calc.date}`}
-              >
+              <ConfirmAction title="Delete this calculation?"
+                description="This removes the saved result from your history. This cannot be undone."
+                label={`Delete calculation ${index + 1} from ${calc.date}`}
+                onConfirm={() => deleteCalculatedGrade(index)}>
                 <Icon name="trash" />
-              </button>
+              </ConfirmAction>
             </div>
           </li>
         ))}

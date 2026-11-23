@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types -- Props retain the existing GPA calculator contract. */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PriorGpa } from "./PriorGpa";
 import { PriorCalculations } from "./PriorCalculations";
 import { CalculatorRows, ErrorMessage, Icon, Notice } from "./ui/Ui";
@@ -47,11 +47,14 @@ export const GpaBox = ({
   deleteCalculatedGrade,
   restoreCalculations,
 }) => {
-  const [gpa, setGpa] = useState(null);
+  const form = useRef(null);
+  const [calculation, setCalculation] = useState(null);
+  const gpa = calculation?.value ?? null;
   const [showPrior, setShowPrior] = useState(false);
   const [error, setError] = useState("");
+  const inputs = JSON.stringify({ rows, prior, showPrior });
+  const stale = calculation !== null && calculation.inputs !== inputs;
   const changed = () => {
-    setGpa(null);
     setError("");
   };
   const credits = rows.reduce(
@@ -65,6 +68,7 @@ export const GpaBox = ({
   const handleCalculate = () => {
     if (!rows.some((r) => r.grade && r.grade !== "-" && r.credits)) {
       setError("Fill in at least one course with a grade and credits.");
+      form.current.querySelector("select")?.focus();
       return;
     }
     const result = calculateGPA(showPrior);
@@ -75,7 +79,7 @@ export const GpaBox = ({
       return;
     }
     setError("");
-    setGpa(result);
+    setCalculation({ value: result, inputs, credits: Number(credits.toFixed(2)), includePrior: showPrior });
     addCalculation(
       new Date().toLocaleDateString(),
       result.toFixed(2),
@@ -85,7 +89,11 @@ export const GpaBox = ({
   };
   return (
     <>
-      <div className="calculator-workspace">
+      <form
+        ref={form}
+        className="calculator-workspace"
+        onSubmit={(event) => { event.preventDefault(); handleCalculate(); }}
+      >
         <section
           className="calculator-editor gpa-editor"
           aria-label="Course editor"
@@ -94,6 +102,7 @@ export const GpaBox = ({
             rows={rows}
             columns={columns}
             noun="course"
+            errorId={error ? "gpa-calculation-error" : undefined}
             updateRow={(...args) => {
               changed();
               updateRow(...args);
@@ -108,11 +117,14 @@ export const GpaBox = ({
             }}
             reset={() => {
               changed();
+              setCalculation(null);
               resetData();
             }}
             total={
               <>
-                Course credits <strong>{Number(credits.toFixed(2))}</strong>
+                Course credits
+                {' '}
+                <strong>{Number(credits.toFixed(2))}</strong>
               </>
             }
           />
@@ -129,7 +141,12 @@ export const GpaBox = ({
               />
               <span>Include prior semester GPA</span>
             </label>
-            <div id="prior-semester-fields" hidden={!showPrior}>
+            <fieldset
+              className="prior-controls"
+              id="prior-semester-fields"
+              hidden={!showPrior}
+              disabled={!showPrior}
+            >
               <PriorGpa
                 prior={prior}
                 updatePrior={(...args) => {
@@ -137,18 +154,26 @@ export const GpaBox = ({
                   updatePrior(...args);
                 }}
               />
-            </div>
+            </fieldset>
           </div>
           <Notice>
             Grades are weighted by credit hours. The existing scale includes A+
             at 4.33 and A at 4.00.
           </Notice>
         </section>
-        <aside className="calculator-summary" aria-label="GPA result">
+        <aside
+          className="calculator-summary"
+          aria-label="GPA result"
+        >
           <p className="summary-label">
             {showPrior ? "Your cumulative GPA" : "Your semester GPA"}
           </p>
-          <div role="status" aria-live="polite" aria-atomic="true">
+          <div
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {stale && <p className="result-state">Previous result · Inputs changed</p>}
             <p className="result-number">
               {gpa !== null ? gpa.toFixed(2) : "—"}
             </p>
@@ -159,32 +184,36 @@ export const GpaBox = ({
             )}
             <p className="summary-copy">
               {gpa !== null
-                ? `Calculated from ${Number(credits.toFixed(2))} course credits${showPrior ? " and your prior semester data" : ""}.`
+                ? `Calculated from ${calculation.credits} course credits${calculation.includePrior ? " and your prior semester data" : ""}.`
                 : "Enter your course grades and credits to see your GPA."}
             </p>
           </div>
-          <ErrorMessage>{error}</ErrorMessage>
-          <button className="button button-primary" onClick={handleCalculate}>
+          <ErrorMessage id="gpa-calculation-error">{error}</ErrorMessage>
+          <button
+            type="submit"
+            className="button button-primary"
+          >
             Calculate GPA
             <Icon name="arrow" />
           </button>
           <p className="result-help">
-            Each calculation is added to your history.
+            {stale ? "Calculate again to update your result." : "Each calculation is added to your history."}
           </p>
           <div className="save-area">
-            <h2>The whole picture.</h2>
+            <h2>Cumulative GPA</h2>
             <p>
               Include your prior GPA and completed credits to calculate a
               cumulative result.
             </p>
           </div>
         </aside>
-      </div>
+      </form>
       <PriorCalculations
         calculations={calculations}
         deleteCalculatedGrade={deleteCalculatedGrade}
         restoreCalculations={(...args) => {
           changed();
+          setCalculation(null);
           restoreCalculations(...args);
         }}
       />

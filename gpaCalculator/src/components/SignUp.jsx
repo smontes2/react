@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Icon, ErrorMessage } from "./ui/Ui";
+import { useRef, useState } from "react";
+import { Icon, ErrorMessage, FormField } from "./ui/Ui";
 import { signUp } from "../services/authServices";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -7,110 +7,119 @@ const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const emailInput = useRef(null);
+  const passwordInput = useRef(null);
+  const confirmInput = useRef(null);
   const navigate = useNavigate();
 
-  const handleSignUp = async (e) => {
-    e.preventDefault();
+  const handleSignUp = async (event) => {
+    event.preventDefault();
+    if (loading) return;
+    setError("");
+    setFieldErrors({});
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setFieldErrors({ confirm: "Passwords do not match. Enter the same password in both fields." });
+      confirmInput.current?.focus();
       return;
     }
     setLoading(true);
-    setError(null);
     try {
       await signUp(email, password);
       navigate("/classes");
     } catch (err) {
-      switch (err.code) {
-        case "auth/email-already-in-use":
-          setError("An account with this email already exists.");
-          break;
-        case "auth/invalid-email":
-          setError("Please enter a valid email address.");
-          break;
-        case "auth/weak-password":
-          setError("Password must be at least 6 characters.");
-          break;
-        default:
-          setError("Sign up failed. Please try again.");
+      if (["auth/email-already-in-use", "auth/invalid-email"].includes(err.code)) {
+        setFieldErrors({ email: err.code === "auth/email-already-in-use"
+          ? "An account with this email already exists. Sign in instead."
+          : "Enter a valid email address." });
+        emailInput.current?.focus();
+      } else if (err.code === "auth/weak-password") {
+        setFieldErrors({ password: "Use a password with at least 6 characters." });
+        passwordInput.current?.focus();
+      } else {
+        setError("Could not create your account. Check your connection and try again.");
       }
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  return (
-    <div className="auth-page">
-      <div className="auth-intro">
-        <span className="auth-mark">
-          <Icon name="book" />
-        </span>
-        <p className="eyebrow">YOUR WORK, READY WHEN YOU ARE</p>
-        <h1>Create an account</h1>
-        <p>Save your classes and pick up where you left off.</p>
-      </div>
-      <div className="auth-panel">
-        <ErrorMessage>{error}</ErrorMessage>
-        <form onSubmit={handleSignUp} className="auth-form">
-          <label htmlFor="auth-email">
-            Email
-            <input
-              id="auth-email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-          <label htmlFor="auth-password">
-            Password
-            <input
-              id="auth-password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="At least 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
-          <label htmlFor="auth-confirm">
-            Confirm password
-            <input
-              id="auth-confirm"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Enter your password again"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              required
-            />
-          </label>
-          <button
-            className="button button-primary"
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? "Creating account…" : "Create account"}
-            <Icon name="arrow" />
-          </button>
-          <span className="sr-only" role="status">
-            {loading ? "Please wait…" : ""}
-          </span>
-        </form>
-        <p className="auth-alternate">
-          Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </div>
-      <Link to="/grade" className="auth-guest">
-        Just calculating? Continue without an account
-        <Icon name="arrow" />
-      </Link>
+  return <div className="auth-page">
+    <div className="auth-intro">
+      <span className="auth-mark"><Icon name="book" /></span>
+      <h1>Create an account</h1>
+      <p>Save your classes and pick up where you left off.</p>
     </div>
-  );
+    <div className="auth-panel">
+      <ErrorMessage>{error}</ErrorMessage>
+      <form
+        onSubmit={handleSignUp}
+        className="auth-form"
+        aria-busy={loading}
+      >
+        <FormField
+          id="auth-email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          spellCheck={false}
+          placeholder="you@example.com"
+          value={email}
+          inputRef={emailInput}
+          error={fieldErrors.email}
+          required
+          onChange={(event) => { setEmail(event.target.value); setFieldErrors({}); }}
+        />
+        <FormField
+          id="auth-password"
+          label="Password"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          inputRef={passwordInput}
+          error={fieldErrors.password}
+          hint="Use at least 6 characters."
+          minLength={6}
+          required
+          onChange={(event) => { setPassword(event.target.value); setFieldErrors({}); }}
+        />
+        <FormField
+          id="auth-confirm"
+          label="Confirm password"
+          type="password"
+          autoComplete="new-password"
+          value={confirm}
+          inputRef={confirmInput}
+          error={fieldErrors.confirm}
+          required
+          onChange={(event) => { setConfirm(event.target.value); setFieldErrors({}); }}
+        />
+        <button
+          className="button button-primary"
+          type="submit"
+          disabled={loading}
+        >
+          {loading ? "Creating account…" : "Create account"}
+        </button>
+        <span
+          className="sr-only"
+          role="status"
+        >
+          {loading ? "Creating account…" : Object.values(fieldErrors).join(" ")}
+        </span>
+      </form>
+      <p className="auth-alternate">
+        Already have an account?
+        <Link to="/login">Sign in</Link>
+      </p>
+    </div>
+    <Link
+      to="/grade"
+      className="auth-guest"
+    >
+      Continue without an account
+      <Icon name="arrow" />
+    </Link>
+  </div>;
 };
 export default SignUp;
