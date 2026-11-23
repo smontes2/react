@@ -1,3 +1,5 @@
+/* eslint-disable react/prop-types -- Context providers accept React children. */
+/* eslint-disable react-refresh/only-export-components -- Provider and its hook form the existing context API. */
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../config/firebase";
 import { onAuthStateChanged } from "firebase/auth";

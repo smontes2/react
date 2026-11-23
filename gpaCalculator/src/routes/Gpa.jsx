@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { GpaBox } from "../components/GpaBox";
 import { useLocation } from "react-router-dom";
 import { db } from "../config/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
+import { useDraftSave } from "../hooks/useDraftSave";
 import { useAuth } from "../context/AuthContext";
 import { COLLECTIONS } from "../constants/collections";
-import { PageHeading } from "../components/ui/Ui";
+import { PageHeading, DraftStatus, Loading, ErrorMessage } from "../components/ui/Ui";
 
 const GRADE_POINTS = {
   "A+": 4.33,
@@ -29,27 +30,20 @@ function Gpa() {
   const location = useLocation();
   const { user, loading } = useAuth();
 
-  const [rows, setRows] = useState([
-    emptyRow(),
-    emptyRow(),
-    emptyRow(),
-    emptyRow(),
-  ]);
+  const [rows, setRows] = useState(() => {
+    const initial = location.state?.classes?.map((c) => ({ course: c.courseName || "", grade: c.grade || "", credits: "4" })) || [];
+    while (initial.length < 4) initial.push(emptyRow());
+    return initial;
+  });
   const [calculations, setCalculations] = useState([]);
   const [prior, setPrior] = useState({ priorGpa: "", priorCredits: "" });
 
-  const saveData = async (currentRows, currentPrior, currentCalculations) => {
-    if (!user) return;
-    try {
-      await setDoc(doc(db, COLLECTIONS.GPA, user.uid), {
-        rows: currentRows,
-        prior: currentPrior,
-        calculations: currentCalculations,
-      });
-    } catch (error) {
-      console.error("Error saving data:", error);
-    }
-  };
+  const draft = useDraftSave(COLLECTIONS.GPA, user);
+  const saveImportedDraft = draft.save;
+  const [dataLoading, setDataLoading] = useState(Boolean(user) || loading);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const saveData = (currentRows, currentPrior, currentCalculations) => draft.save({ rows: currentRows, prior: currentPrior, calculations: currentCalculations });
 
   const addRow = () => {
     const updated = [...rows, emptyRow()];
@@ -136,60 +130,74 @@ function Gpa() {
   };
 
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading) return;
+    if (!user) { setDataLoading(false); return; }
+    let active = true;
+    setDataLoading(true);
+    setLoadError("");
     (async () => {
       try {
         const snap = await getDoc(doc(db, COLLECTIONS.GPA, user.uid));
-        if (snap.exists()) {
-          const data = snap.data();
-          setRows(data.rows);
-          setPrior(data.prior);
-          setCalculations(data.calculations);
+        if (active) {
+          const data = snap.exists() ? snap.data() : {};
+          const imported = location.state?.classes;
+          if (imported) {
+            const importedRows = imported.map((c) => ({ course: c.courseName || "", grade: c.grade || "", credits: "4" }));
+            while (importedRows.length < 4) importedRows.push(emptyRow());
+            setRows(importedRows);
+            saveImportedDraft({ rows: importedRows, prior: data.prior || { priorGpa: "", priorCredits: "" }, calculations: data.calculations || [] });
+          } else if (data.rows?.length) {
+            setRows(data.rows);
+          }
+          setPrior(data.prior || { priorGpa: "", priorCredits: "" });
+          setCalculations(data.calculations || []);
         }
-      } catch (error) {
-        console.error("Error fetching GPA data:", error);
+      } catch {
+        if (active) setLoadError("Your saved draft could not be loaded. Try again before editing to protect your saved work.");
+      } finally {
+        if (active) setDataLoading(false);
       }
     })();
-  }, [user, loading]);
-
-  useEffect(() => {
-    if (!location.state?.classes) return;
-    const newRows = location.state.classes.map((c) => ({
-      course: c.courseName || "",
-      grade: c.grade || "",
-      credits: "4",
-    }));
-    while (newRows.length < 4) newRows.push(emptyRow());
-    setRows(newRows);
-    saveData(newRows, prior, calculations);
-  }, [location.state]);
+    return () => { active = false; };
+  }, [user, loading, loadAttempt, location.key, location.state, saveImportedDraft]);
 
   return (
     <div className="page-shell">
       <PageHeading
-        title="Your semester, in perspective."
-        description="Bring your courses, grades, and credits together."
-        note={
-          <>
-            <strong>GPA calculator</strong>
-            <span>Semester or cumulative. Your choice.</span>
-          </>
-        }
+        title="GPA calculator"
+        description="Calculate your semester GPA or include prior credits for a cumulative result."
+        note={!user ? "No account needed" : undefined}
       />
-      <GpaBox
-        rows={rows}
-        addRow={addRow}
-        removeRow={removeRow}
-        updateRow={updateRow}
-        calculateGPA={calculateGPA}
-        resetData={resetData}
-        prior={prior}
-        updatePrior={updatePrior}
-        calculations={calculations}
-        addCalculation={addCalculation}
-        deleteCalculatedGrade={deleteCalculatedGrade}
-        restoreCalculations={restoreCalculations}
-      />
+      {loading || dataLoading ? <Loading label="Loading your draft…" /> : loadError ? <>
+        <ErrorMessage>{loadError}</ErrorMessage>
+        <button
+          className="button button-secondary"
+          onClick={() => setLoadAttempt((n) => n + 1)}
+        >
+          Try again
+        </button>
+      </> : <>
+        <DraftStatus
+          user={user}
+          status={draft.status}
+          error={draft.error}
+          retry={draft.retry}
+        />
+        <GpaBox
+          rows={rows}
+          addRow={addRow}
+          removeRow={removeRow}
+          updateRow={updateRow}
+          calculateGPA={calculateGPA}
+          resetData={resetData}
+          prior={prior}
+          updatePrior={updatePrior}
+          calculations={calculations}
+          addCalculation={addCalculation}
+          deleteCalculatedGrade={deleteCalculatedGrade}
+          restoreCalculations={restoreCalculations}
+        />
+      </>}
     </div>
   );
 }

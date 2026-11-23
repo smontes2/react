@@ -1,3 +1,5 @@
+/* eslint-disable react/prop-types -- Context providers accept React children. */
+/* eslint-disable react-refresh/only-export-components -- Provider and its hook form the existing context API. */
 import { createContext, useContext, useState, useEffect } from "react";
 import { db, auth } from "../config/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
@@ -9,32 +11,37 @@ const ClassContext = createContext();
 export function ClassProvider({ children }) {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    let generation = 0;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
+      const request = ++generation;
+      const isCurrent = () => active && request === generation;
+      setLoading(true);
+      setLoadError("");
+      setClasses([]);
+      try {
+        if (user) {
           const userClassesRef = doc(db, COLLECTIONS.USERS, user.uid);
           const docSnap = await getDoc(userClassesRef);
-
+          if (!isCurrent()) return;
           if (docSnap.exists()) {
             setClasses(docSnap.data().classes || []);
           } else {
-            // Initialize user document if it doesn't exist
             await setDoc(userClassesRef, { classes: [] });
-            setClasses([]);
           }
-        } catch (error) {
-          console.error("Error fetching classes:", error);
         }
-      } else {
-        setClasses([]); // Clear classes when user logs out
+      } catch {
+        if (isCurrent()) setLoadError("Your saved classes could not be loaded. Check your connection and try again.");
+      } finally {
+        if (isCurrent()) setLoading(false);
       }
-      setLoading(false);
     });
-
-    return () => unsubscribe();
-  }, []); // Empty dependency array since we're using onAuthStateChanged
+    return () => { active = false; unsubscribe(); };
+  }, [loadAttempt]);
 
   const addClass = async (
     courseName,
@@ -43,7 +50,7 @@ export function ClassProvider({ children }) {
     currentRows,
   ) => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user || loading || loadError) throw new Error("Saved classes are not available yet.");
 
     try {
       const rowsCopy = JSON.parse(JSON.stringify(currentRows));
@@ -77,7 +84,7 @@ export function ClassProvider({ children }) {
 
       const userRef = doc(db, COLLECTIONS.USERS, user.uid);
       await setDoc(userRef, { classes: updatedClasses }, { merge: true });
-      setClasses(updatedClasses);
+      if (auth.currentUser?.uid === user.uid) setClasses(updatedClasses);
     } catch (error) {
       console.error("Error saving class:", error);
       throw error;
@@ -86,13 +93,13 @@ export function ClassProvider({ children }) {
 
   const removeClass = async (index) => {
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user || loading || loadError) throw new Error("Saved classes are not available yet.");
 
     try {
       const updatedClasses = classes.filter((_, i) => i !== index);
       const userRef = doc(db, COLLECTIONS.USERS, user.uid);
       await setDoc(userRef, { classes: updatedClasses }, { merge: true });
-      setClasses(updatedClasses);
+      if (auth.currentUser?.uid === user.uid) setClasses(updatedClasses);
     } catch (error) {
       console.error("Error removing class:", error);
       throw error;
@@ -100,7 +107,7 @@ export function ClassProvider({ children }) {
   };
 
   return (
-    <ClassContext.Provider value={{ classes, addClass, removeClass, loading }}>
+    <ClassContext.Provider value={{ classes, addClass, removeClass, loading, loadError, retry: () => setLoadAttempt((n) => n + 1) }}>
       {children}
     </ClassContext.Provider>
   );

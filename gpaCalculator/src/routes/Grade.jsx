@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { PageHeading, RelatedTool } from "../components/ui/Ui";
+import { PageHeading, RelatedTool, DraftStatus, Loading, ErrorMessage } from "../components/ui/Ui";
 import { db } from "../config/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { Gradebox } from "../components/Gradebox";
 import { useClasses } from "../context/ClassesContext";
+import { useDraftSave } from "../hooks/useDraftSave";
 import { useAuth } from "../context/AuthContext";
 import { COLLECTIONS } from "../constants/collections";
 
@@ -35,17 +36,11 @@ function Grade() {
   const { user, loading } = useAuth();
   const { addClass: addClassToContext } = useClasses();
 
-  const saveData = async (currentRows, currentClass) => {
-    if (!user) return;
-    try {
-      await setDoc(doc(db, COLLECTIONS.GRADES, user.uid), {
-        rows: currentRows,
-        class: currentClass,
-      });
-    } catch (error) {
-      console.error("Error saving data:", error);
-    }
-  };
+  const draft = useDraftSave(COLLECTIONS.GRADES, user);
+  const [dataLoading, setDataLoading] = useState(Boolean(user) || loading);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const saveData = (currentRows, currentClass) => draft.save({ rows: currentRows, class: currentClass });
 
   const addRow = () => {
     const updated = [...rows, emptyRow()];
@@ -109,49 +104,67 @@ function Grade() {
   };
 
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading) return;
+    if (!user) { setDataLoading(false); return; }
+    let active = true;
+    setDataLoading(true);
+    setLoadError("");
     (async () => {
       try {
         const snap = await getDoc(doc(db, COLLECTIONS.GRADES, user.uid));
-        if (snap.exists()) {
-          const data = snap.data();
-          setRows(data.rows);
-          setClassName(data.class);
+        if (active) {
+          const data = snap.exists() ? snap.data() : {};
+          if (data.rows?.length) setRows(data.rows);
+          setClassName(data.class || "");
         }
-      } catch (error) {
-        console.error("Error fetching grade data:", error);
+      } catch {
+        if (active) setLoadError("Your saved draft could not be loaded. Try again before editing to protect your saved work.");
+      } finally {
+        if (active) setDataLoading(false);
       }
     })();
-  }, [user, loading]);
+    return () => { active = false; };
+  }, [user, loading, loadAttempt]);
 
   return (
     <div className="page-shell">
       <PageHeading
-        title="Every assignment counts."
-        description="Add your grades and weights. See where you stand."
-        note={
-          <>
-            <strong>Grade calculator</strong>
-            <span>No account needed to calculate.</span>
-          </>
-        }
+        title="Grade calculator"
+        description="Calculate a course grade from your assignments and weights."
+        note={!user ? "No account needed" : undefined}
       />
-      <Gradebox
-        addRow={addRow}
-        removeRow={removeRow}
-        rows={rows}
-        updateRow={updateRow}
-        calculateGrade={calculateGrade}
-        resetData={resetData}
-        updateClassName={updateClassName}
-        className={className}
-        addClass={addClass}
-        restoreClasses={restoreClasses}
-      />
+      {loading || dataLoading ? <Loading label="Loading your draft…" /> : loadError ? <>
+        <ErrorMessage>{loadError}</ErrorMessage>
+        <button
+          className="button button-secondary"
+          onClick={() => setLoadAttempt((n) => n + 1)}
+        >
+          Try again
+        </button>
+      </> : <>
+        <DraftStatus
+          user={user}
+          status={draft.status}
+          error={draft.error}
+          retry={draft.retry}
+        />
+        <Gradebox
+          addRow={addRow}
+          removeRow={removeRow}
+          rows={rows}
+          updateRow={updateRow}
+          calculateGrade={calculateGrade}
+          resetData={resetData}
+          updateClassName={updateClassName}
+          className={className}
+          addClass={addClass}
+          restoreClasses={restoreClasses}
+        />
+      </>}
       <RelatedTool
         to="/gpa"
-        title="From a class grade to the bigger picture."
-        description="Combine your courses and credit hours to calculate your GPA."
+        title="Calculate your semester GPA"
+        description="Combine course grades and credit hours."
         label="Open GPA calculator"
       />
     </div>

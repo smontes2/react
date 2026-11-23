@@ -5,6 +5,8 @@ export const PriorGpa = ({ prior, updatePrior }) => (
       Prior GPA
       <input
         id="prior-gpa"
+        name="prior-gpa"
+        autoComplete="off"
         type="number"
         step="0.01"
         min="0"
@@ -24,6 +26,8 @@ export const PriorGpa = ({ prior, updatePrior }) => (
       Completed credits
       <input
         id="prior-credits"
+        name="prior-credits"
+        autoComplete="off"
         type="number"
         step="any"
         min="0"

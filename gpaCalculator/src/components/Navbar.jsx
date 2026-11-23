@@ -6,6 +6,7 @@ import { Brand, Icon } from "./ui/Ui";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState("");
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -13,10 +14,9 @@ export const Navbar = () => {
   const menuButton = useRef(null);
   const links = [
     { path: "/", label: "Home" },
-    { path: "/gpa", label: "GPA calculator" },
     { path: "/grade", label: "Grade calculator" },
+    { path: "/gpa", label: "GPA calculator" },
     ...(user ? [{ path: "/classes", label: "Your classes" }] : []),
-    { path: "/feedback", label: "Feedback" },
   ];
 
   useEffect(() => {
@@ -43,12 +43,15 @@ export const Navbar = () => {
   }, [isOpen]);
 
   const handleLogout = async () => {
+    setSigningOut(true);
     try {
       await logout();
       setIsOpen(false);
       navigate("/");
     } catch {
       setError("Could not sign out. Please try again.");
+    } finally {
+      setSigningOut(false);
     }
   };
   const account = (
@@ -58,8 +61,8 @@ export const Navbar = () => {
           <span className="account-email" title={user.email}>
             {user.email}
           </span>
-          <button className="button button-secondary" onClick={handleLogout}>
-            Sign out
+          <button className="button button-secondary" onClick={handleLogout} disabled={signingOut}>
+            {signingOut ? "Signing out…" : "Sign out"}
           </button>
         </>
       ) : (

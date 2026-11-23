@@ -5,9 +5,8 @@ function Feedback() {
   return (
     <div className="page-shell feedback-page">
       <PageHeading
-        title="Help make it better."
+        title="Feedback"
         description="Have a suggestion or found a bug? Let us know."
-        eyebrow="FEEDBACK"
       />
       <div className="feedback-panel">
         {isLoading && <Loading label="Loading feedback form…" />}

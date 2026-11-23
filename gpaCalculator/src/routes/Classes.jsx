@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useClasses } from "../context/ClassesContext";
 import { useNavigate, Link } from "react-router-dom";
-import { PageHeading, Icon, Loading, ErrorMessage } from "../components/ui/Ui";
+import { PageHeading, ConfirmAction, Icon, Loading, ErrorMessage } from "../components/ui/Ui";
 
 function Classes() {
-  const { classes, removeClass, loading } = useClasses();
+  const { classes, removeClass, loading, loadError, retry } = useClasses();
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [removing, setRemoving] = useState(null);
@@ -20,8 +20,9 @@ function Classes() {
     setRemoving(index);
     try {
       await removeClass(index);
-    } catch {
+    } catch (error) {
       setError("Could not remove this class. Please try again.");
+      throw error;
     } finally {
       setRemoving(null);
     }
@@ -29,20 +30,33 @@ function Classes() {
   return (
     <div className="page-shell">
       <PageHeading
-        title="Your work, all together."
+        title="Your classes"
         description="Saved course grades, ready when you need them."
-        eyebrow="YOUR CLASSES"
       />
       {loading ? (
         <Loading />
-      ) : (
+      ) : loadError ? <>
+        <ErrorMessage>{loadError}</ErrorMessage>
+        <button
+          className="button button-secondary"
+          onClick={retry}
+        >
+          Try again
+        </button>
+      </> : (
         <>
           <div className="classes-toolbar">
             <p>
-              {classes.length} saved class{classes.length !== 1 ? "es" : ""}
+              {classes.length}
+              {' '}
+              saved class
+              {classes.length !== 1 ? "es" : ""}
             </p>
             <div>
-              <Link className="button button-secondary" to="/grade">
+              <Link
+                className="button button-secondary"
+                to="/grade"
+              >
                 <Icon name="plus" />
                 Add a class
               </Link>
@@ -61,25 +75,37 @@ function Classes() {
           {classes.length === 0 ? (
             <div className="empty-state">
               <Icon name="book" />
-              <h2>A place for your classes.</h2>
+              <h2>No saved classes yet</h2>
               <p>
                 Calculate a course grade, then save it here to use it again.
               </p>
-              <Link to="/grade" className="button button-primary">
+              <Link
+                to="/grade"
+                className="button button-primary"
+              >
                 Open grade calculator
                 <Icon name="arrow" />
               </Link>
             </div>
           ) : (
-            <section className="classes-list" aria-label="Saved classes">
-              <div className="class-list-heading" aria-hidden="true">
+            <section
+              className="classes-list"
+              aria-label="Saved classes"
+            >
+              <div
+                className="class-list-heading"
+                aria-hidden="true"
+              >
                 <span>Course</span>
                 <span>Grade</span>
                 <span>Letter</span>
                 <span />
               </div>
               {classes.map((row, index) => (
-                <div className="class-list-row" key={row.id || index}>
+                <div
+                  className="class-list-row"
+                  key={row.id || index}
+                >
                   <h2>{row.courseName || "Untitled Class"}</h2>
                   <span className="class-grade">
                     <span className="mobile-field-label">Grade</span>
@@ -94,14 +120,15 @@ function Classes() {
                     <span className="sr-only">Letter grade </span>
                     {row.letterGrade || "—"}
                   </span>
-                  <button
-                    className="icon-button danger-action"
+                  <ConfirmAction
+                    title="Delete this class?"
+                    description={`Remove ${row.courseName || "this class"} and its saved assignments? This cannot be undone.`}
                     disabled={removing !== null}
-                    onClick={() => handleRemove(index)}
-                    aria-label={`Remove ${row.courseName || "untitled class"}`}
+                    onConfirm={() => handleRemove(index)}
+                    label={`Remove ${row.courseName || "untitled class"}`}
                   >
                     <Icon name="trash" />
-                  </button>
+                  </ConfirmAction>
                 </div>
               ))}
             </section>
